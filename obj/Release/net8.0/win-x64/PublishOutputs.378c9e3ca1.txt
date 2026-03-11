@@ -1,0 +1,2 @@
+C:\projects\Console\ZxInfoBot\publish\ZxInfoBot.pdb
+C:\projects\Console\ZxInfoBot\publish\ZxInfoBot.exe

@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <PublishTrimmed>false</PublishTrimmed>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <PublishTrimmed>false</PublishTrimmed>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Telegram.Bot" Version="22.9.5.3"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <TrimmerRootAssembly Include="Newtonsoft.Json"/>
+        <TrimmerRootAssembly Include="Telegram.Bot"/>
+        <Using Include="ZxInfoBot.BotCommand" Static="True" />
+    </ItemGroup>
+
+</Project>
