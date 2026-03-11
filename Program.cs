@@ -12,7 +12,6 @@ namespace ZxInfoBot
         static async Task Main(string[] args)
         {
             await Bot.StartBot();
-            // var model =await Api.GetHitByName("yanga");
         }
     }
 }
