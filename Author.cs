@@ -17,7 +17,7 @@ public static class Author
             query = query.Replace(RequestTokenAuthor, string.Empty).Trim();
             if (query.Length < 2) return;
             var model = await Api.GetAuthorGames(query);
-            if (model == null) return;
+            if (model == null || model.Length == 0) return;
             var lines = new List<string> { "Games by the author:" };
 
             foreach (var game in model)
