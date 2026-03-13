@@ -118,6 +118,12 @@ public static class Bot
             return;
         }
 
+        if (query.StartsWith(RequestTokenRequest, StringComparison.OrdinalIgnoreCase))
+        {
+            await GameRequest.Show( bot, chatId, ct);
+            return;
+        }
+
         if (query.StartsWith(RequestTokenGame, StringComparison.OrdinalIgnoreCase))
         {
             query = query.Replace(RequestTokenGame, string.Empty).Trim();

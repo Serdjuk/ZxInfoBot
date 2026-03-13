@@ -17,7 +17,7 @@ public static class Api
 {
     //  https://api.zxinfo.dk/v3/#/
 
-    private static readonly HttpClient Client;
+    public static readonly HttpClient Client;
 
     static Api()
     {
