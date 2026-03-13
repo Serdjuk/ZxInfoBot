@@ -12,7 +12,9 @@ public static class Help
 
     public static async Task Show(ITelegramBotClient bot, long chatId, CancellationToken ct)
     {
-        var message = await Program.Load(FileName) ?? "";
+        var lines = await Program.Load(FileName);
+        if (lines == null || lines.Length == 0) return;
+        var message = string.Join('\n',lines) ;
         try
         {
             await bot.SendMessage(

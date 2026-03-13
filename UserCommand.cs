@@ -13,17 +13,18 @@ public static class UserCommand
 
     public static async Task Show(string chatMessage, ITelegramBotClient bot, long chatId, CancellationToken ct, int messageId)
     {
-        var userCommands = await Program.Load(FileName) ?? "";
-        if (userCommands.Length == 0) return;
-        var commands = userCommands
-            .Split('\n')
+        var userCommandLines = await Program.Load(FileName);
+        if (userCommandLines == null || userCommandLines.Length == 0) return;
+        
+        var commands = userCommandLines
             .Select(s => s.Trim().Split('\t'))
             .ToDictionary(k => k[0], v => v[1]);
-        var message = commands
+        var values = commands
             .OrderByDescending(pair => pair.Key.Length)
             .FirstOrDefault(pair => chatMessage.StartsWith(pair.Key, StringComparison.OrdinalIgnoreCase))
             .Value;
-        if  (string.IsNullOrEmpty(message)) return;
+        if  (string.IsNullOrEmpty(values)) return;
+        string message = values.Replace("\\n", "\n");
         await bot.DeleteMessage(chatId, messageId, ct);
         try
         {

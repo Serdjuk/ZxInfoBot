@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using ZxInfoBot.publish.TgBot;
 
@@ -13,7 +14,7 @@ namespace ZxInfoBot
             await Bot.StartBot();
         }
 
-        public static async Task<string?> Load(string fileName)
+        public static async Task<string[]?> Load(string fileName)
         {
             try
             {
@@ -28,9 +29,11 @@ namespace ZxInfoBot
                     return null;
                 }
 
-                var message = (await File.ReadAllTextAsync(tokenPath)).Trim();
-
-                if (string.IsNullOrWhiteSpace(message))
+                var message = await File.ReadAllLinesAsync(tokenPath);
+            
+                message = message.Select(line => line.Trim()).Where(s => s.Length != 0).ToArray();
+                
+                if (message.Length == 0) 
                 {
                     Console.WriteLine($"Файл {fileName} пустой или содержит только пробелы!");
                     Console.ReadLine();
