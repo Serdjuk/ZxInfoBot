@@ -41,7 +41,7 @@ public static class Api
         Client.DefaultRequestHeaders.ConnectionClose = true;
     }
 
-    
+
     public static async Task<GameModel?> LoadGameData(string gameId)
     {
         var url = $"https://api.zxinfo.dk/v3/games/{gameId}?mode=tiny";
@@ -172,22 +172,35 @@ public static class Api
 
     public static async Task<SimpleGameData[]?> GetAuthorGames(string authorName)
     {
-        var url = $@"https://api.zxinfo.dk/v3/authors/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_desc&output=simple";
+        var pubUrl = $@"https://api.zxinfo.dk/v3/publishers/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_desc&output=simple";
+        var authorUrl = $@"https://api.zxinfo.dk/v3/authors/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_asc&output=simple";
         try
         {
-            Console.WriteLine($"Запрос: {url}");
-            using var response = await Client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
+            Console.WriteLine($"Запрос: {authorUrl}");
+            Console.WriteLine($"Запрос: {pubUrl}");
 
-            var content = await response.Content.ReadAsStringAsync();
-            var settings = new JsonSerializerSettings
+            var result = new HashSet<SimpleGameData>();
+            var authors = Client.GetAsync(authorUrl);
+            var publishers = Client.GetAsync(pubUrl);
+            var response = await Task.WhenAll(authors, publishers);
+            
+            var serializer = new JsonSerializer();
+           
+            foreach (var message in response)
             {
-                Error = (sender, args) => { args.ErrorContext.Handled = true; },
-                MissingMemberHandling = MissingMemberHandling.Ignore
-            };
 
-            var result = JsonConvert.DeserializeObject<SimpleGameData[]>(content, settings);
-            return result;
+                var stream = await message.Content.ReadAsStreamAsync();
+                using var sr = new StreamReader(stream);
+                var reader = new JsonTextReader(sr);
+                var data = serializer.Deserialize<SimpleGameData[]>(reader);
+                if (data != null)
+                {
+                    result.UnionWith(data);
+                }
+            }
+
+
+            return result.ToArray();
         }
         catch (Exception ex)
         {

@@ -24,9 +24,9 @@ public static class Author
             {
                 var gameName = game.Title;
                 var gameLink = Api.GetZxInfoUrl(game.Id);
-                var link = $@"<a href=""{gameLink}"">{gameName}</a>";
-                Console.WriteLine($"link: {link}");
-                lines.Add(link);
+                var authorLink = $@"<a href=""{gameLink}"">{gameName}</a>";
+                Console.WriteLine($"link: {authorLink}");
+                lines.Add(authorLink);
             }
             
             await bot.SendMessage(
