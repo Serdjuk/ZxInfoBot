@@ -21,46 +21,27 @@ public static class Api
 
     static Api()
     {
-        var handler = new HttpClientHandler()
-        {
-            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-            AutomaticDecompression =
-                System.Net.DecompressionMethods.GZip |
-                System.Net.DecompressionMethods.Deflate,
-            MaxConnectionsPerServer = 10
-        };
 
-        Client = new HttpClient(handler);
-
-        Client.Timeout = TimeSpan.FromSeconds(15);
-
-        Client.DefaultRequestHeaders.UserAgent.ParseAdd("ZxInfoBot/1.0");
-        Client.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("application/json"));
-
-        Client.DefaultRequestHeaders.ConnectionClose = true;
+        Client = SharedHttpClient.Client;
     }
 
 
     public static async Task<GameModel?> LoadGameData(string gameId)
     {
         var url = $"https://api.zxinfo.dk/v3/games/{gameId}?mode=tiny";
-
+    
         try
         {
             Console.WriteLine($"Запрос: {url}");
 
-            using var response = await Client.GetAsync(
-                url,
-                HttpCompletionOption.ResponseHeadersRead
-            );
+            using var request = new HttpRequestMessage(HttpMethod.Get, url); // внутри try
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+            using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             Console.WriteLine($"Status: {response.StatusCode}");
-
             response.EnsureSuccessStatusCode();
 
             await using var stream = await response.Content.ReadAsStreamAsync();
-
             using var reader = new StreamReader(stream);
             var content = await reader.ReadToEndAsync();
 
@@ -71,9 +52,7 @@ public static class Api
             };
 
             var result = JsonConvert.DeserializeObject<GameModel>(content, settings);
-
             Console.WriteLine(result?.Source?.Title);
-
             return result;
         }
         catch (Exception ex)
@@ -87,10 +66,13 @@ public static class Api
     public static async Task<List<SimpleGameData>?> GetRandomGames(int count = 1)
     {
         var url = $@"https://api.zxinfo.dk/v3/games/random/{count}?mode=tiny&output=simple";
+        
         try
         {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             Console.WriteLine($"Запрос: {url}");
-            using var response = await Client.GetAsync(url);
+            using var response = await Client.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -113,10 +95,15 @@ public static class Api
     public static async Task<InfoModel?> GetHitByName(string name)
     {
         var fullUrl = $"https://api.zxinfo.dk/v3/search?query={Uri.EscapeDataString(name)}&titlesonly=true&mode=tiny&size=100&offset=0&sort=rel_desc";
+    
         try
         {
             Console.WriteLine($"Запрос: {fullUrl}");
-            using var response = await Client.GetAsync(fullUrl);
+        
+            using var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        
+            using var response = await Client.SendAsync(request); // <-- было GetAsync
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -172,38 +159,44 @@ public static class Api
 
     public static async Task<SimpleGameData[]?> GetAuthorGames(string authorName)
     {
-        var pubUrl = $@"https://api.zxinfo.dk/v3/publishers/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_desc&output=simple";
-        var authorUrl = $@"https://api.zxinfo.dk/v3/authors/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_asc&output=simple";
+        var pubUrl = $"https://api.zxinfo.dk/v3/publishers/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_desc&output=simple";
+        var authorUrl = $"https://api.zxinfo.dk/v3/authors/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_asc&output=simple";
+
         try
         {
             Console.WriteLine($"Запрос: {authorUrl}");
             Console.WriteLine($"Запрос: {pubUrl}");
 
-            var result = new List<SimpleGameData>();
-            var authors = Client.GetAsync(authorUrl);
-            var publishers = Client.GetAsync(pubUrl);
-            var response = await Task.WhenAll(authors, publishers);
+            // Каждый запрос — свой HttpRequestMessage
+            using var authorRequest = new HttpRequestMessage(HttpMethod.Get, authorUrl);
+            authorRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+            using var pubRequest = new HttpRequestMessage(HttpMethod.Get, pubUrl);
+            pubRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var authors = Client.SendAsync(authorRequest);
+            var publishers = Client.SendAsync(pubRequest);
+            var responses = await Task.WhenAll(authors, publishers);
+
+            var result = new List<SimpleGameData>();
             var serializer = new JsonSerializer();
 
-            foreach (var message in response)
+            foreach (var message in responses)
             {
-                var stream = await message.Content.ReadAsStreamAsync();
+                message.EnsureSuccessStatusCode();
+                await using var stream = await message.Content.ReadAsStreamAsync();
                 using var sr = new StreamReader(stream);
-                var reader = new JsonTextReader(sr);
+                using var reader = new JsonTextReader(sr);
                 var data = serializer.Deserialize<SimpleGameData[]>(reader);
                 if (data != null)
                 {
-                    foreach (var author in data)
+                    foreach (var item in data)
                     {
-                        if (result.FirstOrDefault(x => x.Id == author.Id) == null)
-                        {
-                            result.Add(author);
-                        }
+                        if (result.All(x => x.Id != item.Id))
+                            result.Add(item);
                     }
                 }
             }
-
 
             result.Sort((x, y) => string.Compare(x.Title, y.Title, StringComparison.Ordinal));
             return result.ToArray();

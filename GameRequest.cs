@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -16,61 +15,86 @@ namespace ZxInfoBot
         static async Task<List<GameRequestEntry>> Load(CancellationToken ct)
         {
             var result = new List<GameRequestEntry>();
+            const int maxAttempts = 3;
+            string url = "https://docs.google.com/spreadsheets/d/12ZmERmZaVrJcek1fTU6Qqu9UWZZFnLL__6opEA7X9M0/gviz/tq?tqx=out:json&gid=0";
 
-            try
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                string url = "https://docs.google.com/spreadsheets/d/12ZmERmZaVrJcek1fTU6Qqu9UWZZFnLL__6opEA7X9M0/gviz/tq?tqx=out:json&gid=0";
+                // Объявляем ДО try — чтобы были видны в catch
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
-                using var client = new HttpClient
+                Console.WriteLine($"Попытка {attempt}/{maxAttempts}, время: {DateTime.Now:HH:mm:ss}");
+                Console.WriteLine($"Client.Timeout: {SharedHttpClient.Client.Timeout}");
+
+                try
                 {
-                    Timeout = TimeSpan.FromSeconds(100) // фиксируем 100 секунд
-                };
+                    using var response = await SharedHttpClient.Client.GetAsync(url, linkedCts.Token);
+                    response.EnsureSuccessStatusCode();
+                    string raw = await response.Content.ReadAsStringAsync(linkedCts.Token);
 
-                string raw = await client.GetStringAsync(url, ct); // передаём токен сюда
+                    int start = raw.IndexOf('{');
+                    int end = raw.LastIndexOf('}');
+                    if (start < 0 || end <= start)
+                    {
+                        Console.WriteLine("Не удалось найти JSON в ответе Google Sheets.");
+                        return result;
+                    }
 
-                int start = raw.IndexOf('{');
-                int end = raw.LastIndexOf('}');
-                if (start < 0 || end <= start) return result;
+                    string json = raw.Substring(start, end - start + 1);
+                    var obj = JObject.Parse(json);
 
-                string json = raw.Substring(start, end - start + 1);
-                JObject obj = JObject.Parse(json);
+                    var rows = obj["table"]?["rows"] as JArray;
+                    if (rows == null) return result;
 
-                var rows = obj["table"]?["rows"] as JArray;
-                if (rows == null) return result;
+                    foreach (var row in rows)
+                    {
+                        var cells = row["c"] as JArray;
+                        if (cells == null) continue;
 
-                foreach (var row in rows)
+                        var entry = new GameRequestEntry();
+                        bool hasValue = false;
+
+                        entry.Game = GetCellValue(cells, 0, ref hasValue);
+                        entry.Platform = GetCellValue(cells, 1, ref hasValue);
+                        entry.Rehoster = GetCellValue(cells, 2, ref hasValue);
+                        entry.RequestDate = GetCellValue(cells, 3, ref hasValue);
+                        entry.RehostStatus = GetCellValue(cells, 4, ref hasValue);
+                        entry.PlaythroughStatus = GetCellValue(cells, 5, ref hasValue);
+                        entry.RehostStream = GetCellValue(cells, 6, ref hasValue);
+                        entry.PlaythroughStream = GetCellValue(cells, 7, ref hasValue);
+
+                        if (hasValue) result.Add(entry);
+                    }
+
+                    Console.WriteLine($"Загружено записей: {result.Count}");
+                    return result;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
-                    var cells = row["c"] as JArray;
-                    if (cells == null) continue;
-
-                    var entry = new GameRequestEntry();
-                    bool hasValue = false;
-
-                    entry.Game = GetCellValue(cells, 0, ref hasValue);
-                    entry.Platform = GetCellValue(cells, 1, ref hasValue);
-                    entry.Rehoster = GetCellValue(cells, 2, ref hasValue);
-                    entry.RequestDate = GetCellValue(cells, 3, ref hasValue);
-                    entry.RehostStatus = GetCellValue(cells, 4, ref hasValue);
-                    entry.PlaythroughStatus = GetCellValue(cells, 5, ref hasValue);
-                    entry.RehostStream = GetCellValue(cells, 6, ref hasValue);
-                    entry.PlaythroughStream = GetCellValue(cells, 7, ref hasValue);
-
-                    if (hasValue)
-                        result.Add(entry);
+                    Console.WriteLine("Загрузка отменена внешним токеном.");
+                    return result;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    Console.WriteLine($"Таймаут на попытке {attempt}/{maxAttempts}.");
+                    Console.WriteLine($"  timeoutCts отменён: {timeoutCts.IsCancellationRequested}");
+                    Console.WriteLine($"  внешний ct отменён: {ct.IsCancellationRequested}");
+                    Console.WriteLine($"  Exception: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка на попытке {attempt}/{maxAttempts}: {ex.GetType().Name}: {ex.Message}");
                 }
 
-                Console.WriteLine($"Загружено записей: {result.Count}");
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("Загрузка таблицы была прервана (таймаут или отмена).");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Ошибка при загрузке таблицы:");
-                Console.WriteLine(ex.Message); // выводим только короткое сообщение
+                if (attempt < maxAttempts)
+                {
+                    Console.WriteLine("Повтор через 1с...");
+                    await Task.Delay(1000, ct);
+                }
             }
 
+            Console.WriteLine("Все попытки исчерпаны.");
             return result;
         }
 
@@ -85,17 +109,18 @@ namespace ZxInfoBot
             {
                 if (DateTime.TryParse(a.RequestDate, out var dateA) &&
                     DateTime.TryParse(b.RequestDate, out var dateB))
-                {
                     return dateA.CompareTo(dateB);
-                }
-
                 return 0;
             });
 
             var lines = new List<string>();
             foreach (var e in queueEntries)
-            {
                 lines.Add($"{e.Game} | <i>{e.Platform}</i> | <b>{e.Rehoster}</b>");
+
+            if (lines.Count == 0)
+            {
+                Console.WriteLine("Нет записей для отправки, сообщение не отправлено.");
+                return;
             }
 
             await bot.SendMessage(
