@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Authentication;
@@ -14,7 +15,7 @@ namespace ZxInfoBot;
 public static class Api
 {
     //  https://api.zxinfo.dk/v3/#/
-    
+
     private static readonly HttpClient Client;
 
     static Api()
@@ -79,8 +80,8 @@ public static class Api
             return null;
         }
     }
-    
-    
+
+
     public static async Task<List<SimpleGameData>?> GetRandomGames(int count = 1)
     {
         var url = $@"https://api.zxinfo.dk/v3/games/random/{count}?mode=tiny&output=simple";
@@ -137,12 +138,19 @@ public static class Api
     public static string GetExtendedName(Source source)
     {
         var year = source.OriginalYearOfRelease?.ToString() ?? "";
-        year = year == string.Empty ? string.Empty : $"({year})";
+        year = year == string.Empty ? string.Empty : $"{year}";
+        var model = $"\n{source.MachineType}" ?? "";
+        var publisher = "";
+        if (source.Publishers != null)
+        {
+            publisher = string.Join(", ", source.Publishers.Select(p => p != null ? p.Name : ""));
+        }
+
         var contentType = source.ContentType.ToLower();
-        var icon = contentType == "software" ? "🎮" : contentType == "book" ? "📖": "❓";
-        return $"{icon} <b>{source.Title}</b> <i>{year}</i>";
+        var icon = contentType == "software" ? "🎮" : contentType == "book" ? "📖" : "❓";
+        return $"{icon} <b>{source.Title}</b>\n<i>{year} - {publisher}</i>{model}";
     }
-    
+
     public static string GetImagePath(Source source)
     {
         var path = source.Screens.Count > 0 ? source.Screens[0].Url : "";

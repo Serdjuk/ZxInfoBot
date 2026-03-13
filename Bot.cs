@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
@@ -109,17 +110,19 @@ public static class Bot
         if (query.StartsWith(RequestTokenGame, StringComparison.OrdinalIgnoreCase))
         {
             query = query.Replace(RequestTokenGame, string.Empty).Trim();
-            viewMode = ViewMode.WithImage;
+            viewMode = string.IsNullOrEmpty(query) ? ViewMode.None : ViewMode.WithImage;
         }
 
         if (query.StartsWith(RequestTokenList, StringComparison.OrdinalIgnoreCase))
         {
             query = query.Replace(RequestTokenList, string.Empty).Trim();
-            viewMode = ViewMode.TextOnly;
+            viewMode = string.IsNullOrEmpty(query) ? ViewMode.None : ViewMode.TextOnly;
         }
 
-        if (viewMode == ViewMode.None) return;
-
+        if (viewMode == ViewMode.None || query.Length < 2) return;
+        // var q = query.Split(' ').Select(s => s.Trim().ToLower());
+        // query = string.Join(' ', new HashSet<string>(q));
+        // Console.WriteLine($"Query: {query}");
         var model = await Api.GetHitByName(query);
         var results = new List<(string RawTitle, string Title, string SpectrumComputingUrl, string ZxInfoUrl, string Image)>();
         if (model != null)

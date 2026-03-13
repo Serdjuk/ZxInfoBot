@@ -13,21 +13,21 @@ public static class SearchFilter
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
 
-        // перевод в нижний регистр
         input = input.ToLowerInvariant();
-
-        // нормализация формы D — разделяем буквы и диакритику
         var normalizedString = input.Normalize(NormalizationForm.FormD);
 
-        // оставляем только буквы и цифры, пробелы
         var chars = normalizedString
             .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
             .Select(c => char.IsLetterOrDigit(c) ? c : ' ')
             .ToArray();
 
-        // убираем лишние пробелы
-        return string.Join(' ', new string(chars).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        var uniqueWords = new string(chars)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Distinct();
+
+        return string.Join(' ', uniqueWords);
     }
+
 
     public static List<(string RawTitle, string Title, string SpectrumComputingUrl, string ZxInfoUrl, string Image)>
         FilterGames(List<(string RawTitle, string Title, string SpectrumComputingUrl, string ZxInfoUrl, string Image)> results, string query)

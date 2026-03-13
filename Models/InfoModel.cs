@@ -89,7 +89,7 @@ namespace ZxInfoBot.Models
         public string Genre { get; set; }
 
         [JsonProperty("publishers")]
-        public List<Publisher> Publishers { get; set; }
+        public List<Publisher?>? Publishers { get; set; }
 
         [JsonProperty("genreSubType", NullValueHandling = NullValueHandling.Ignore)]
         public string GenreSubType { get; set; }
@@ -98,7 +98,7 @@ namespace ZxInfoBot.Models
         public string ContentType { get; set; }
 
         [JsonProperty("machineType")]
-        public string MachineType { get; set; }
+        public string? MachineType { get; set; }
 
         [JsonProperty("authors")]
         public List<Author> Authors { get; set; }
