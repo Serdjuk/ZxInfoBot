@@ -40,7 +40,7 @@ public static class Bot
             }
 
             var bot = new TelegramBotClient(botToken);
-            
+
             try
             {
                 var me = await bot.SendRequest(new GetMeRequest());
@@ -94,10 +94,9 @@ public static class Bot
 
         if (query.StartsWith(RequestTokenHelp, StringComparison.OrdinalIgnoreCase))
         {
-            await Help(bot, chatId, ct);
-            return;
+            await Help.Show(bot, chatId, ct);
         }
-        
+
         if (query.StartsWith(RequestTokenRandom, StringComparison.OrdinalIgnoreCase))
         {
             await RandomGames.GetRandomGames(bot, chatId, ct);
@@ -187,23 +186,6 @@ public static class Bot
         return Task.CompletedTask;
     }
 
-
-    static async Task Help(ITelegramBotClient bot, long chatId, CancellationToken ct)
-    {
-        try
-        {
-            await bot.SendMessage(
-                chatId: chatId,
-                text: HelpText,
-                parseMode: ParseMode.Html,
-                cancellationToken: ct
-            );
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"{e.Message}");
-        }
-    }
 
     static async Task Exit(ITelegramBotClient bot, Message message)
     {

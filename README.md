@@ -35,6 +35,7 @@ A console-based Telegram bot that allows users to search for and discover ZX Spe
 
 ---
 
+
 ## 🔍 Search Logic
 
 The bot uses a smart search algorithm to make finding titles easier:

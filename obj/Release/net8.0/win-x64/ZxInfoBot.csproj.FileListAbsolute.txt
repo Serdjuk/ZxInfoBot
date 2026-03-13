@@ -22,6 +22,7 @@ C:\projects\Console\ZxInfoBot\obj\Release\net8.0\win-x64\refint\ZxInfoBot.dll
 C:\projects\Console\ZxInfoBot\obj\Release\net8.0\win-x64\ZxInfoBot.pdb
 C:\projects\Console\ZxInfoBot\obj\Release\net8.0\win-x64\ZxInfoBot.genruntimeconfig.cache
 C:\projects\Console\ZxInfoBot\obj\Release\net8.0\win-x64\ref\ZxInfoBot.dll
+C:\projects\Console\ZxInfoBot\obj\Release\net8.0\win-x64\ZxInfoBot.sourcelink.json
 C:\projects\Console\ZxInfoBot\bin\Release\net8.0\win-x64\Microsoft.CSharp.dll
 C:\projects\Console\ZxInfoBot\bin\Release\net8.0\win-x64\Microsoft.VisualBasic.Core.dll
 C:\projects\Console\ZxInfoBot\bin\Release\net8.0\win-x64\Microsoft.VisualBasic.dll
