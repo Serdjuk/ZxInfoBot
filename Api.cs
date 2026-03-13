@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,6 +41,7 @@ public static class Api
         Client.DefaultRequestHeaders.ConnectionClose = true;
     }
 
+    
     public static async Task<GameModel?> LoadGameData(string gameId)
     {
         var url = $"https://api.zxinfo.dk/v3/games/{gameId}?mode=tiny";
@@ -166,5 +168,31 @@ public static class Api
     public static string GetSpectrumComputingUrl(string id)
     {
         return $@"{SpectrumComputingPath}{id}";
+    }
+
+    public static async Task<SimpleGameData[]?> GetAuthorGames(string authorName)
+    {
+        var url = $@"https://api.zxinfo.dk/v3/authors/{authorName}/games?mode=tiny&size=50&offset=0&sort=rel_desc&output=simple";
+        try
+        {
+            Console.WriteLine($"Запрос: {url}");
+            using var response = await Client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var settings = new JsonSerializerSettings
+            {
+                Error = (sender, args) => { args.ErrorContext.Handled = true; },
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            var result = JsonConvert.DeserializeObject<SimpleGameData[]>(content, settings);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка API: {ex.Message}");
+            return null;
+        }
     }
 }

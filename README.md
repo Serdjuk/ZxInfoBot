@@ -25,13 +25,14 @@ A console-based Telegram bot that allows users to search for and discover ZX Spe
 ## 🤖 Bot Commands
 
 
-| Command | Description |
-| :--- | :--- |
-| `/game [title]` | Search for games (shows results with images) |
-| `/list [title]` | Search for games (shows results as a list) |
-| `/rnd` | Display a random game with an image |
-| `/help` | Show the help message |
-| `/exit` | Shut down the bot |
+| Command                                   | Description                                  |
+|:------------------------------------------|:---------------------------------------------|
+| `/game [title]`                           | Search for games (shows results with images) |
+| `/list [title]`                           | Search for games (shows results as a list)   |
+| `/rnd`                                    | Display a random game with an image          |
+| `/help`                                   | Show the help message                        |
+| `/exit`                                   | Shut down the bot                            |
+| `/author`                                 | Show games by this author (max 50)           |
 
 ## 📂 Custom User Commands (External File)
 

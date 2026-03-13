@@ -92,11 +92,16 @@ public static class Bot
 
         var viewMode = ViewMode.None;
 
-        if (query.StartsWith(RequestTokenExit, StringComparison.OrdinalIgnoreCase)) await Exit(bot, update.Message);
+        if (query.StartsWith(RequestTokenExit, StringComparison.OrdinalIgnoreCase))
+        {
+            await Exit(bot, update.Message);
+            return;
+        }
 
         if (query.StartsWith(RequestTokenHelp, StringComparison.OrdinalIgnoreCase))
         {
             await Help.Show(bot, chatId, ct);
+            return;
         }
         
         await UserCommand.Show(query, bot,chatId, ct, messageId);
@@ -104,6 +109,12 @@ public static class Bot
         if (query.StartsWith(RequestTokenRandom, StringComparison.OrdinalIgnoreCase))
         {
             await RandomGames.GetRandomGames(bot, chatId, ct);
+            return;
+        }
+
+        if (query.StartsWith(RequestTokenAuthor, StringComparison.OrdinalIgnoreCase))
+        {
+            await Author.Show(query, bot, chatId, ct);
             return;
         }
 
