@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -14,7 +13,7 @@ namespace ZxInfoBot
 {
     public static class GameRequest
     {
-        static async Task<List<GameRequestEntry>> Load()
+        static async Task<List<GameRequestEntry>> Load(CancellationToken ct)
         {
             var result = new List<GameRequestEntry>();
 
@@ -22,10 +21,12 @@ namespace ZxInfoBot
             {
                 string url = "https://docs.google.com/spreadsheets/d/12ZmERmZaVrJcek1fTU6Qqu9UWZZFnLL__6opEA7X9M0/gviz/tq?tqx=out:json&gid=0";
 
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(60);
+                using var client = new HttpClient
+                {
+                    Timeout = TimeSpan.FromSeconds(100) // фиксируем 100 секунд
+                };
 
-                string raw = await client.GetStringAsync(url);
+                string raw = await client.GetStringAsync(url, ct); // передаём токен сюда
 
                 int start = raw.IndexOf('{');
                 int end = raw.LastIndexOf('}');
@@ -45,7 +46,6 @@ namespace ZxInfoBot
                     var entry = new GameRequestEntry();
                     bool hasValue = false;
 
-                    // Присваиваем поля по порядку
                     entry.Game = GetCellValue(cells, 0, ref hasValue);
                     entry.Platform = GetCellValue(cells, 1, ref hasValue);
                     entry.Rehoster = GetCellValue(cells, 2, ref hasValue);
@@ -61,10 +61,14 @@ namespace ZxInfoBot
 
                 Console.WriteLine($"Загружено записей: {result.Count}");
             }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Загрузка таблицы была прервана (таймаут или отмена).");
+            }
             catch (Exception ex)
             {
                 Console.WriteLine("Ошибка при загрузке таблицы:");
-                Console.WriteLine(ex);
+                Console.WriteLine(ex.Message); // выводим только короткое сообщение
             }
 
             return result;
@@ -72,7 +76,7 @@ namespace ZxInfoBot
 
         public static async Task Show(ITelegramBotClient bot, long chatId, CancellationToken ct)
         {
-            var allEntries = await Load();
+            var allEntries = await Load(ct);
 
             var queueEntries = allEntries
                 .FindAll(e => string.Equals(e.RehostStatus, "В очереди", StringComparison.OrdinalIgnoreCase));
@@ -84,6 +88,7 @@ namespace ZxInfoBot
                 {
                     return dateA.CompareTo(dateB);
                 }
+
                 return 0;
             });
 
@@ -92,10 +97,10 @@ namespace ZxInfoBot
             {
                 lines.Add($"{e.Game} | <i>{e.Platform}</i> | <b>{e.Rehoster}</b>");
             }
-            
+
             await bot.SendMessage(
                 chatId: chatId,
-                text:string.Join('\n', lines),  
+                text: string.Join('\n', lines),
                 cancellationToken: ct,
                 linkPreviewOptions: new LinkPreviewOptions { IsDisabled = true },
                 parseMode: ParseMode.Html
@@ -114,7 +119,6 @@ namespace ZxInfoBot
 
             return value;
         }
-        
     }
 
     public class GameRequestEntry
