@@ -33,6 +33,23 @@ A console-based Telegram bot that allows users to search for and discover ZX Spe
 | `/help` | Show the help message |
 | `/exit` | Shut down the bot |
 
+## 📂 Custom User Commands (External File)
+
+The bot can process custom responses from an external file `userCommands.txt` located in the application folder.
+
+### Configuration:
+- Create `userCommands.txt` in the same folder as the `.exe`.
+- **Format:** `[command][TAB][user text]`
+- Commands can start with `/` or `$`.
+- The user text must be in **ONE LINE**.
+- To add a line break in the response, use the `\n` sequence.
+- Supports **ParseMode.Html** (tags like `<b>`, `<i>`, `<a>` are allowed).
+
+### Example of `userCommands.txt`:
+```text
+/links	<b>Useful links:</b>\nhttps://rgg.land\nhttps://wiki.specnext.dev
+$rules	1. No spam\n2. Be cool
+```
 ---
 
 
