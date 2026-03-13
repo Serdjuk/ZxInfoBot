@@ -1,2 +1,0 @@
-C:\projects\Console\ZxInfoBot\bin\Release\net9.0\win-x64\publish\ZxInfoBot.pdb
-C:\projects\Console\ZxInfoBot\bin\Release\net9.0\win-x64\publish\ZxInfoBot.exe
