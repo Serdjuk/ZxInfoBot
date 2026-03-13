@@ -21,24 +21,7 @@ public static class Api
 
     static Api()
     {
-        var handler = new HttpClientHandler()
-        {
-            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-            AutomaticDecompression =
-                System.Net.DecompressionMethods.GZip |
-                System.Net.DecompressionMethods.Deflate,
-            MaxConnectionsPerServer = 10
-        };
-
-        Client = new HttpClient(handler);
-
-        Client.Timeout = TimeSpan.FromSeconds(15);
-
-        Client.DefaultRequestHeaders.UserAgent.ParseAdd("ZxInfoBot/1.0");
-        Client.DefaultRequestHeaders.Accept.Add(
-            new MediaTypeWithQualityHeaderValue("application/json"));
-
-        Client.DefaultRequestHeaders.ConnectionClose = true;
+        Client = SharedHttpClient.Client;
     }
 
 
@@ -49,9 +32,11 @@ public static class Api
         try
         {
             Console.WriteLine($"Запрос: {url}");
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            using var response = await Client.GetAsync(
-                url,
+            using var response = await Client.SendAsync(
+                request,
                 HttpCompletionOption.ResponseHeadersRead
             );
 
@@ -89,8 +74,11 @@ public static class Api
         var url = $@"https://api.zxinfo.dk/v3/games/random/{count}?mode=tiny&output=simple";
         try
         {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
             Console.WriteLine($"Запрос: {url}");
-            using var response = await Client.GetAsync(url);
+            using var response = await Client.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -116,7 +104,10 @@ public static class Api
         try
         {
             Console.WriteLine($"Запрос: {fullUrl}");
-            using var response = await Client.GetAsync(fullUrl);
+            using var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            using var response = await Client.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -180,8 +171,16 @@ public static class Api
             Console.WriteLine($"Запрос: {pubUrl}");
 
             var result = new List<SimpleGameData>();
-            var authors = Client.GetAsync(authorUrl);
-            var publishers = Client.GetAsync(pubUrl);
+            
+            using var authorRequest = new HttpRequestMessage(HttpMethod.Get, authorUrl);
+            authorRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            using var pubRequest = new HttpRequestMessage(HttpMethod.Get, pubUrl);
+            pubRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var authors = Client.SendAsync(authorRequest);
+            var publishers = Client.SendAsync(pubRequest);
+            
             var response = await Task.WhenAll(authors, publishers);
             
             var serializer = new JsonSerializer();
