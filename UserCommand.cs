@@ -11,7 +11,7 @@ public static class UserCommand
 {
     const string FileName = @"userCommands.txt";
 
-    public static async Task Show(string chatMessage, ITelegramBotClient bot, long chatId, CancellationToken ct)
+    public static async Task Show(string chatMessage, ITelegramBotClient bot, long chatId, CancellationToken ct, int messageId)
     {
         var userCommands = await Program.Load(FileName) ?? "";
         if (userCommands.Length == 0) return;
@@ -24,7 +24,7 @@ public static class UserCommand
             .FirstOrDefault(pair => chatMessage.StartsWith(pair.Key, StringComparison.OrdinalIgnoreCase))
             .Value;
         if  (string.IsNullOrEmpty(message)) return;
-        
+        await bot.DeleteMessage(chatId, messageId, ct);
         try
         {
             await bot.SendMessage(

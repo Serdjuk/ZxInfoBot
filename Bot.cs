@@ -86,6 +86,7 @@ public static class Bot
             return;
 
         var chatId = update.Message.Chat.Id;
+        var messageId = update.Message.MessageId;
         var query = update.Message.Text.Trim();
 
         var viewMode = ViewMode.None;
@@ -97,7 +98,7 @@ public static class Bot
             await Help.Show(bot, chatId, ct);
         }
         
-        await UserCommand.Show(query, bot,chatId, ct);
+        await UserCommand.Show(query, bot,chatId, ct, messageId);
 
         if (query.StartsWith(RequestTokenRandom, StringComparison.OrdinalIgnoreCase))
         {
