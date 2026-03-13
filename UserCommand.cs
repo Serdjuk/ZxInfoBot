@@ -25,7 +25,7 @@ public static class UserCommand
             .Value;
         if  (string.IsNullOrEmpty(values)) return;
         string message = values.Replace("\\n", "\n");
-        await bot.DeleteMessage(chatId, messageId, ct);
+        // await bot.DeleteMessage(chatId, messageId, ct);
         try
         {
             await bot.SendMessage(
