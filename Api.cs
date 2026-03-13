@@ -179,7 +179,7 @@ public static class Api
             Console.WriteLine($"Запрос: {authorUrl}");
             Console.WriteLine($"Запрос: {pubUrl}");
 
-            var result = new HashSet<SimpleGameData>();
+            var result = new List<SimpleGameData>();
             var authors = Client.GetAsync(authorUrl);
             var publishers = Client.GetAsync(pubUrl);
             var response = await Task.WhenAll(authors, publishers);
@@ -195,11 +195,17 @@ public static class Api
                 var data = serializer.Deserialize<SimpleGameData[]>(reader);
                 if (data != null)
                 {
-                    result.UnionWith(data);
+                    foreach (var author in data)
+                    {
+                        if (result.FirstOrDefault(x => x.Id == author.Id) == null)
+                        {
+                            result.Add(author);
+                        }
+                    }
                 }
             }
 
-
+            result.Sort((x, y) => string.Compare(x.Title, y.Title, StringComparison.Ordinal));
             return result.ToArray();
         }
         catch (Exception ex)
