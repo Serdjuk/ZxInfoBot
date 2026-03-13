@@ -23,7 +23,7 @@ public static class Author
             foreach (var game in model)
             {
                 var gameName = game.Title;
-                var gameLink = Api.GetSpectrumComputingUrl(game.Id);
+                var gameLink = Api.GetZxInfoUrl(game.Id);
                 var link = $@"<a href=""{gameLink}"">{gameName}</a>";
                 Console.WriteLine($"link: {link}");
                 lines.Add(link);
