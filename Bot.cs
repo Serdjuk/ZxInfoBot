@@ -96,6 +96,8 @@ public static class Bot
         {
             await Help.Show(bot, chatId, ct);
         }
+        
+        await UserCommand.Show(query, bot,chatId, ct);
 
         if (query.StartsWith(RequestTokenRandom, StringComparison.OrdinalIgnoreCase))
         {

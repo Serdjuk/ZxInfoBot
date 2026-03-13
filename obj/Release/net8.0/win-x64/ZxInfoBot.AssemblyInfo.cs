@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ZxInfoBot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+029be15adb8eff319246040597456452fbb16387")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9b5f441a0cb8aa6b85d099e3ee227220d031bc45")]
 [assembly: System.Reflection.AssemblyProductAttribute("ZxInfoBot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ZxInfoBot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
