@@ -103,8 +103,8 @@ public static class Bot
             await Help.Show(bot, chatId, ct);
             return;
         }
-        
-        await UserCommand.Show(query, bot,chatId, ct, messageId);
+
+        await UserCommand.Show(query, bot, chatId, ct, messageId);
 
         if (query.StartsWith(RequestTokenRandom, StringComparison.OrdinalIgnoreCase))
         {
@@ -118,10 +118,14 @@ public static class Bot
             return;
         }
 
-        if (query.StartsWith(RequestTokenRequest, StringComparison.OrdinalIgnoreCase))
+
+        foreach (var s in RequestTokenRequest)
         {
-            await GameRequest.Show( bot, chatId, ct);
-            return;
+            if (query.StartsWith(s, StringComparison.OrdinalIgnoreCase))
+            {
+                await GameRequest.Show(bot, chatId, ct);
+                return;
+            }
         }
 
         if (query.StartsWith(RequestTokenGame, StringComparison.OrdinalIgnoreCase))

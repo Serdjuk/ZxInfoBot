@@ -9,7 +9,7 @@ public static class BotCommand
     public const string RequestTokenExit = "/exit";
     public const string RequestTokenRandom = "/rnd";
     public const string RequestTokenAuthor = "/author";
-    public const string RequestTokenRequest = "/request";
+    public static readonly string[] RequestTokenRequest = ["/request","/очередь"];
 
     public const string EmptyImagePath = @"https://dummyimage.com/150x150/cccccc/000000.png&text=No+Image";
     
