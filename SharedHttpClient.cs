@@ -16,7 +16,9 @@ public static class SharedHttpClient
         {
             SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            MaxConnectionsPerServer = 10
+            MaxConnectionsPerServer = 10,
+            AllowAutoRedirect = true,      // <-- явно разрешаем редиректы
+            MaxAutomaticRedirections = 5,  // <-- максимум 5 редиректов
             // ConnectionClose НЕ трогаем — пусть keep-alive работает
         };
  

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -16,11 +17,9 @@ namespace ZxInfoBot
         {
             var result = new List<GameRequestEntry>();
             const int maxAttempts = 3;
-            string url = "https://docs.google.com/spreadsheets/d/12ZmERmZaVrJcek1fTU6Qqu9UWZZFnLL__6opEA7X9M0/gviz/tq?tqx=out:json&gid=0";
-
+             string url = @"https://docs.google.com/spreadsheets/d/12ZmERmZaVrJcek1fTU6Qqu9UWZZFnLL__6opEA7X9M0/export?format=tsv&gid=0";
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                // Объявляем ДО try — чтобы были видны в catch
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
@@ -33,40 +32,26 @@ namespace ZxInfoBot
                     response.EnsureSuccessStatusCode();
                     string raw = await response.Content.ReadAsStringAsync(linkedCts.Token);
 
-                    int start = raw.IndexOf('{');
-                    int end = raw.LastIndexOf('}');
-                    if (start < 0 || end <= start)
+                    var lines = raw.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+                    // Первая строка — заголовок, пропускаем
+                    for (int i = 1; i < lines.Length; i++)
                     {
-                        Console.WriteLine("Не удалось найти JSON в ответе Google Sheets.");
-                        return result;
-                    }
-
-                    string json = raw.Substring(start, end - start + 1);
-                    var obj = JObject.Parse(json);
-
-                    var rows = obj["table"]?["rows"] as JArray;
-                    if (rows == null) return result;
-
-                    foreach (var row in rows)
-                    {
-                        var cells = row["c"] as JArray;
-                        if (cells == null) continue;
-
+                        var columns = lines[i].Split('\t');
+    
                         var entry = new GameRequestEntry();
-                        bool hasValue = false;
+                        entry.RowIndex          = i + 1; // +1 потому что строка 1 это заголовок
+                        entry.Game              = GetColumn(columns, 0);
+                        entry.Platform          = GetColumn(columns, 1);
+                        entry.Rehoster          = GetColumn(columns, 2);
+                        entry.RequestDate       = GetColumn(columns, 3);
+                        entry.RehostStatus      = GetColumn(columns, 4);
+                        entry.PlaythroughStatus = GetColumn(columns, 5);
+                        entry.RehostStream      = GetColumn(columns, 6);
+                        entry.PlaythroughStream = GetColumn(columns, 7);
 
-                        entry.Game = GetCellValue(cells, 0, ref hasValue);
-                        entry.Platform = GetCellValue(cells, 1, ref hasValue);
-                        entry.Rehoster = GetCellValue(cells, 2, ref hasValue);
-                        entry.RequestDate = GetCellValue(cells, 3, ref hasValue);
-                        entry.RehostStatus = GetCellValue(cells, 4, ref hasValue);
-                        entry.PlaythroughStatus = GetCellValue(cells, 5, ref hasValue);
-                        entry.RehostStream = GetCellValue(cells, 6, ref hasValue);
-                        entry.PlaythroughStream = GetCellValue(cells, 7, ref hasValue);
-
-                        if (hasValue) result.Add(entry);
+                        if (!string.IsNullOrWhiteSpace(entry.Game)) result.Add(entry);
                     }
-
                     Console.WriteLine($"Загружено записей: {result.Count}");
                     return result;
                 }
@@ -90,32 +75,63 @@ namespace ZxInfoBot
                 if (attempt < maxAttempts)
                 {
                     Console.WriteLine("Повтор через 1с...");
-                    await Task.Delay(1000, ct);
+                    await Task.Delay(3000, ct);
                 }
             }
 
             Console.WriteLine("Все попытки исчерпаны.");
             return result;
         }
-
+        private static string GetColumn(string[] columns, int index)
+        {
+            if (index >= columns.Length) return "";
+            return columns[index].Trim().Trim('"'); // убираем пробелы и кавычки если есть
+        }
         public static async Task Show(ITelegramBotClient bot, long chatId, CancellationToken ct)
         {
             var allEntries = await Load(ct);
+            var postponed = allEntries
+                .FindAll(e => e.RehostStatus.Contains("Отложено", StringComparison.OrdinalIgnoreCase));
+            foreach (var p in postponed)
+            {
+                var i = p.RehostStatus.Split(">");
+                if (i.Length != 2) continue;
+                if (int.TryParse(i[1].Trim(), out var rowIndex)) p.RowIndex = rowIndex;
+            }
 
             var queueEntries = allEntries
                 .FindAll(e => string.Equals(e.RehostStatus, "В очереди", StringComparison.OrdinalIgnoreCase));
-
-            queueEntries.Sort((a, b) =>
+            Console.WriteLine("------");
+            foreach (var p in postponed)
             {
-                if (DateTime.TryParse(a.RequestDate, out var dateA) &&
-                    DateTime.TryParse(b.RequestDate, out var dateB))
-                    return dateA.CompareTo(dateB);
-                return 0;
-            });
+                Console.WriteLine($"{p.RowIndex}: {p.Game}, {p.Platform}, {p.RehostStatus}");
+            }
+            Console.WriteLine("------");
+            foreach (var queueEntry in queueEntries)
+            {
+                Console.WriteLine($"{queueEntry.RowIndex}: {queueEntry.Game}, {queueEntry.Platform}, {queueEntry.RehostStatus}");
+            }
+            
+            foreach (var p in postponed.Where(entry => entry.RowIndex > 0))
+            {
+                var insertIndex = queueEntries.FindIndex(entry => entry.RowIndex == p.RowIndex);
+                if (insertIndex >= 0)
+                {
+                    queueEntries.Insert(insertIndex, p);
+                }
+            }
+
+            // queueEntries.Sort((a, b) =>
+            // {
+            //     if (DateTime.TryParse(a.RequestDate, out var dateA) &&
+            //         DateTime.TryParse(b.RequestDate, out var dateB))
+            //         return dateA.CompareTo(dateB);
+            //     return 0;
+            // });
 
             var lines = new List<string>();
             foreach (var e in queueEntries)
-                lines.Add($"{e.Game} | <i>{e.Platform}</i> | <b>{e.Rehoster}</b>");
+                lines.Add($"{e.Game} [<i>{e.Platform}</i>] <b>{e.Rehoster}</b>");
 
             if (lines.Count == 0)
             {
@@ -131,23 +147,11 @@ namespace ZxInfoBot
                 parseMode: ParseMode.Html
             );
         }
-
-        private static string GetCellValue(JArray cells, int index, ref bool hasValue)
-        {
-            if (index >= cells.Count) return "";
-
-            var cell = cells[index];
-            if (cell == null || cell.Type != JTokenType.Object) return "";
-
-            string value = cell["v"]?.ToString() ?? "";
-            if (!string.IsNullOrEmpty(value)) hasValue = true;
-
-            return value;
-        }
     }
 
     public class GameRequestEntry
     {
+        public int RowIndex = -1;
         [JsonProperty("Игра")] public string Game { get; set; }
 
         [JsonProperty("Платформа")] public string Platform { get; set; }
